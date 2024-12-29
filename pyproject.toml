@@ -27,11 +27,6 @@ Repository = "https://github.com/AbhijeetKrishnan/chopsticks"
 "Bug Tracker" = "https://github.com/AbhijeetKrishnan/chopsticks/issues"
 
 [project.optional-dependencies]
-policy = [
-    "supersuit",
-    "torch",
-    "tensorboard",
-]
 dev = [
     "pre-commit",
     "pytest",
