@@ -1,4 +1,6 @@
-from typing import Dict
+from collections import defaultdict
+from enum import Enum, auto
+from typing import Dict, List, Tuple
 
 import pydot
 
@@ -6,104 +8,197 @@ from chopsticks import chopsticks_v0
 from chopsticks.env.state import ChopsticksAction, ChopsticksState, Turn
 
 MAX, MIN = 1000, -1000
-VAL_TO_COLOR = {
-    0: "gray39",
-    1: "darkgreen",
-    -1: "crimson",
-}
-MAXIMIZING_PLAYER_TO_SHAPE = {
-    True: "house",
-    False: "invhouse",
-}
 
-graph = pydot.Dot(
-    "Decision Tree for Chopsticks", graph_type="graph", bgcolor="lightgray"
-)
+
+class Color(Enum):
+    WHITE = auto()
+    GRAY = auto()
+    BLACK = auto()
+
+
+class EdgeType(Enum):
+    FORWARD = auto()
+    BACK = auto()
+    TREE = auto()
 
 
 def minimax(
-    node: ChopsticksState,
-    parent: ChopsticksState | None,
-    action: ChopsticksAction | None,
-    isMaximizingPlayer: bool,
-    alpha: int,
-    beta: int,
-    cache: Dict[ChopsticksState, int] = {},
-) -> int:
-    node = node.canonical
-    if node in cache:
-        value = cache[node]
-    else:
-        # if node is a leaf node, then return its value
-        is_terminal = node.is_terminal()
-        if is_terminal:
-            if node.winner() == Turn.P1:
-                value = 1
-            elif node.winner() == Turn.P2:
-                value = -1
-            else:
-                value = 0
+    env: chopsticks_v0.env,
+) -> Tuple[Dict[ChopsticksState, List[ChopsticksState]], Dict[ChopsticksState, int]]:
+    stack: List[
+        Tuple[
+            ChopsticksState,
+            bool,
+            int,
+            int,
+        ]
+    ] = []  # stack of function calls
+    cache: Dict[ChopsticksState, int] = {}
+    color: Dict[ChopsticksState, Color] = defaultdict(
+        lambda: Color.WHITE
+    )  # visited state of each node based on CLRS
+    graph: Dict[
+        ChopsticksState, List[Tuple[ChopsticksState, ChopsticksAction, EdgeType]]
+    ] = defaultdict(list)  # graph of decision tree
+
+    # initialize variables
+    stack.append(
+        (
+            env.game_state.canonical,  # curr state
+            True,  # isMaximizingPlayer
+            MIN,  # alpha
+            MAX,  # beta
+        )
+    )
+
+    while stack:
+        state, isMaximizingPlayer, alpha, beta = stack[-1]
+        print(
+            "Before computation",
+            state,
+            isMaximizingPlayer,
+            alpha,
+            beta,
+        )
+        color[state] = Color.GRAY
+        # explore state and find its value
+        if state.is_terminal():
+            if state.winner() == Turn.P1:
+                val = 1
+            elif state.winner() == Turn.P2:
+                val = -1
         else:
             if isMaximizingPlayer:
                 best = MIN
-                # for each child node
-                for action in node.legal_moves():
-                    child = node.transition(action)
-                    if child in cache:
+                shouldContinue = False
+                for action in state.legal_moves():
+                    child = state.transition(action)
+                    if (
+                        color[child] == Color.BLACK
+                    ):  # forward/cross edge, we've seen and computed the value for child
+                        assert child in cache
                         val = cache[child]
-                    else:
-                        val = minimax(child, node, action, False, alpha, beta)
-                        # build child node here and connect to node
+                        graph[state].append((child, action, EdgeType.FORWARD))
+                    elif (
+                        color[child] == Color.GRAY
+                    ):  # back edge, we've seen but not yet computed the value for child
+                        # we have a cycle
+                        val = 0
+                        graph[state].append((child, action, EdgeType.BACK))
+                    else:  # tree edge
+                        graph[state].append((child, action, EdgeType.TREE))
+                        # we need to compute the value of this state, so "call" the function again on it
+                        stack.append((child, False, alpha, beta))
+                        shouldContinue = True
+                        break
+                    # all the children have been explored and values computed
                     best = max(best, val)
                     alpha = max(alpha, best)
                     if beta <= alpha:
+                        # prune rest of children by not exploring them
                         break
-                value = best
+                if shouldContinue:
+                    continue
+                # we now have the value of the current node
+                val = best
             else:
                 best = MAX
-                # for each child node
-                for action in node.legal_moves():
-                    child = node.transition(action)
-                    if child in cache:
+                shouldContinue = False
+                for action in state.legal_moves():
+                    child = state.transition(action)
+                    if color[child] == Color.BLACK:  # forward/cross edge
+                        assert child in cache
                         val = cache[child]
-                    else:
-                        val = minimax(child, node, action, True, alpha, beta)
-                        # build child node here and connect to node
+                        graph[state].append((child, action, EdgeType.FORWARD))
+                    elif color[child] == Color.GRAY:  # back edge
+                        val = 0
+                        graph[state].append((child, action, EdgeType.BACK))
+                    elif color[child] == Color.WHITE:  # tree edge
+                        graph[state].append((child, action, EdgeType.TREE))
+                        stack.append((child, False, alpha, beta))
+                        shouldContinue = True
+                        break
                     best = min(best, val)
                     beta = min(beta, best)
                     if beta <= alpha:
                         break
-                value = best
-        cache[node] = value
-    # print(node, isMaximizingPlayer, alpha, beta, value)
-    if is_terminal:
-        shape = "box"
-    else:
-        shape = MAXIMIZING_PLAYER_TO_SHAPE[isMaximizingPlayer]
-    graph.add_node(
-        pydot.Node(
-            str(node),
-            label=str(node),
-            color=VAL_TO_COLOR[value],
-            shape=shape,
+                if shouldContinue:
+                    continue
+                val = best
+        print(
+            "After computation",
+            state,
+            isMaximizingPlayer,
+            alpha,
+            beta,
+            val,
         )
+        color[state] = Color.BLACK
+        cache[state] = val
+        stack.pop()
+    return graph, cache
+
+
+def draw_graph(
+    graph: Dict[
+        ChopsticksState, List[Tuple[ChopsticksState, ChopsticksAction, EdgeType]]
+    ],
+    results: Dict[ChopsticksState, int],
+    graph_name: str = "output",
+) -> None:
+    VAL_TO_COLOR = {
+        0: "gray39",
+        1: "darkgreen",
+        -1: "crimson",
+    }
+    MAXIMIZING_PLAYER_TO_SHAPE = {
+        True: "house",
+        False: "invhouse",
+    }
+    dot_graph = pydot.Dot(
+        "Decision Tree for Chopsticks", graph_type="graph", bgcolor="lightgray"
     )
-    if parent:
-        graph.add_edge(
-            pydot.Edge(
-                str(parent),
-                str(node),
-                label=str(action.name if action else ""),
-                arrowhead="normal",
-                dir="forward",
+    for state in graph.keys():
+        # Draw the node
+        if state.is_terminal():
+            shape = "box"
+        else:
+            shape = MAXIMIZING_PLAYER_TO_SHAPE[state.turn == Turn.P1]
+        color = VAL_TO_COLOR[results[state]]
+        dot_graph.add_node(
+            pydot.Node(
+                str(state),
+                label=str(state),
+                shape=shape,
+                color=color,
             )
         )
-    return value
+    for u in graph.keys():
+        for v, action, edge_type in graph[u]:
+            if edge_type == EdgeType.TREE:
+                style = "solid"
+            elif edge_type == EdgeType.BACK:
+                style = "dashed"
+            else:
+                style = "dotted"
+            dot_graph.add_edge(
+                pydot.Edge(
+                    str(u),
+                    str(v),
+                    label=str(action.name),
+                    style=style,
+                    arrowhead="normal",
+                    dir="forward",
+                )
+            )
+    dot_graph.write_raw(f"{graph_name}.dot")
+    dot_graph.write_png(f"{graph_name}.png")
 
 
 if __name__ == "__main__":
     env = chopsticks_v0.env()
     seed = None
     env.reset(seed=seed)
-    minimax(env.game_state, None, None, True, MIN, MAX)
-    graph.write_png("output.png")
+    graph, results = minimax(env)
+    print("done")
+    draw_graph(graph, results)
