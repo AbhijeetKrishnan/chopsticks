@@ -53,6 +53,13 @@ def minimax(
 
     while stack:
         state, isMaximizingPlayer, alpha, beta = stack[-1]
+        if (
+            state.p1_left == 3
+            and state.p1_right == 4
+            and state.p2_left == 0
+            and state.p2_right == 0
+        ):
+            print("start debug")
         print(
             "Before computation",
             state,
@@ -67,6 +74,7 @@ def minimax(
                 val = 1
             elif state.winner() == Turn.P2:
                 val = -1
+            graph[state] = []
         else:
             if isMaximizingPlayer:
                 best = MIN
@@ -115,7 +123,7 @@ def minimax(
                         graph[state].append((child, action, EdgeType.BACK))
                     elif color[child] == Color.WHITE:  # tree edge
                         graph[state].append((child, action, EdgeType.TREE))
-                        stack.append((child, False, alpha, beta))
+                        stack.append((child, True, alpha, beta))
                         shouldContinue = True
                         break
                     best = min(best, val)
@@ -177,22 +185,33 @@ def draw_graph(
         for v, action, edge_type in graph[u]:
             if edge_type == EdgeType.TREE:
                 style = "solid"
+                dot_graph.add_edge(
+                    pydot.Edge(
+                        str(u),
+                        str(v),
+                        label=str(action.name),
+                        style=style,
+                        arrowhead="normal",
+                        dir="forward",
+                    )
+                )
             elif edge_type == EdgeType.BACK:
                 style = "dashed"
+                pass
             else:
                 style = "dotted"
-            dot_graph.add_edge(
-                pydot.Edge(
-                    str(u),
-                    str(v),
-                    label=str(action.name),
-                    style=style,
-                    arrowhead="normal",
-                    dir="forward",
-                )
-            )
+                pass
+    print("Writing graph to dot...")
     dot_graph.write_raw(f"{graph_name}.dot")
+    print(f"Wrote graph as dot file to {graph_name}.dot")
+
+    print("Writing graph to png...")
     dot_graph.write_png(f"{graph_name}.png")
+    print(f"Wrote graph as png file to {graph_name}.png")
+
+
+# TODO: draw the graph for the optimal play for P1
+# TODO: build an agent to play optimally
 
 
 if __name__ == "__main__":
