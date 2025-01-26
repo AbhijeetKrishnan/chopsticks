@@ -1,6 +1,6 @@
 from collections import defaultdict
 from enum import Enum, auto
-from typing import Dict, List, Tuple
+from typing import Dict, List, Set, Tuple
 
 import pydot
 
@@ -8,6 +8,15 @@ from chopsticks import chopsticks_v0
 from chopsticks.env.state import ChopsticksAction, ChopsticksState, Turn
 
 MAX, MIN = 1000, -1000
+VAL_TO_COLOR = {
+    0: "gray39",
+    1: "darkgreen",
+    -1: "crimson",
+}
+MAXIMIZING_PLAYER_TO_SHAPE = {
+    True: "house",
+    False: "invhouse",
+}
 
 
 class Color(Enum):
@@ -24,6 +33,7 @@ class EdgeType(Enum):
 
 def minimax(
     env: chopsticks_v0.env,
+    alpha_beta_pruning: bool = True,
 ) -> Tuple[Dict[ChopsticksState, List[ChopsticksState]], Dict[ChopsticksState, int]]:
     stack: List[
         Tuple[
@@ -53,20 +63,6 @@ def minimax(
 
     while stack:
         state, isMaximizingPlayer, alpha, beta = stack[-1]
-        if (
-            state.p1_left == 3
-            and state.p1_right == 4
-            and state.p2_left == 0
-            and state.p2_right == 0
-        ):
-            print("start debug")
-        print(
-            "Before computation",
-            state,
-            isMaximizingPlayer,
-            alpha,
-            beta,
-        )
         color[state] = Color.GRAY
         # explore state and find its value
         if state.is_terminal():
@@ -102,7 +98,7 @@ def minimax(
                     # all the children have been explored and values computed
                     best = max(best, val)
                     alpha = max(alpha, best)
-                    if beta <= alpha:
+                    if alpha_beta_pruning and beta <= alpha:
                         # prune rest of children by not exploring them
                         break
                 if shouldContinue:
@@ -128,19 +124,11 @@ def minimax(
                         break
                     best = min(best, val)
                     beta = min(beta, best)
-                    if beta <= alpha:
+                    if alpha_beta_pruning and beta <= alpha:
                         break
                 if shouldContinue:
                     continue
                 val = best
-        print(
-            "After computation",
-            state,
-            isMaximizingPlayer,
-            alpha,
-            beta,
-            val,
-        )
         color[state] = Color.BLACK
         cache[state] = val
         stack.pop()
@@ -154,15 +142,6 @@ def draw_graph(
     results: Dict[ChopsticksState, int],
     graph_name: str = "output",
 ) -> None:
-    VAL_TO_COLOR = {
-        0: "gray39",
-        1: "darkgreen",
-        -1: "crimson",
-    }
-    MAXIMIZING_PLAYER_TO_SHAPE = {
-        True: "house",
-        False: "invhouse",
-    }
     dot_graph = pydot.Dot(
         "Decision Tree for Chopsticks", graph_type="graph", bgcolor="lightgray"
     )
@@ -210,7 +189,47 @@ def draw_graph(
     print(f"Wrote graph as png file to {graph_name}.png")
 
 
-# TODO: draw the graph for the optimal play for P1
+def draw_optimal_graph(env: chopsticks_v0, results: Dict[ChopsticksState, int]) -> None:
+    env.reset()
+    queue: List[ChopsticksState] = [env.game_state]
+    seen: Set[ChopsticksState] = {env.game_state}
+    dot_graph = pydot.Dot(
+        "Optimal Decision Tree for Chopsticks", graph_type="graph", bgcolor="lightgray"
+    )
+    dot_graph.add_node(
+        pydot.Node(
+            str(env.game_state),
+            label=str(env.game_state),
+            shape=MAXIMIZING_PLAYER_TO_SHAPE[env.game_state.turn == Turn.P1],
+        )
+    )
+    while queue:
+        state = queue.pop(0)
+        for action in state.legal_moves():
+            child = state.transition(action)
+            if results[child] == 1:
+                if child not in seen:
+                    seen.add(child)
+                    queue.append(child)
+                    dot_graph.add_node(
+                        pydot.Node(
+                            str(child),
+                            label=str(child),
+                            shape=MAXIMIZING_PLAYER_TO_SHAPE[child.turn == Turn.P1],
+                        )
+                    )
+                dot_graph.add_edge(
+                    pydot.Edge(
+                        str(state),
+                        str(child),
+                        label=str(action.name),
+                        arrowhead="normal",
+                        dir="forward",
+                    )
+                )
+    dot_graph.write_png("optimal_graph.png")
+
+
 # TODO: build an agent to play optimally
 
 
@@ -218,6 +237,8 @@ if __name__ == "__main__":
     env = chopsticks_v0.env()
     seed = None
     env.reset(seed=seed)
-    graph, results = minimax(env)
+    graph, results = minimax(env, False)
+    # result with alpha_beta_pruning False and True is different - why? I'd expect it to be the same
     print("done")
     draw_graph(graph, results)
+    # draw_optimal_graph(env, results)
