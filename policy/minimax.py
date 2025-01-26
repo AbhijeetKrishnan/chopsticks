@@ -33,7 +33,7 @@ class EdgeType(Enum):
 
 def minimax(
     env: chopsticks_v0.env,
-    alpha_beta_pruning: bool = True,
+    use_alpha_beta_pruning: bool = True,
 ) -> Tuple[Dict[ChopsticksState, List[ChopsticksState]], Dict[ChopsticksState, int]]:
     stack: List[
         Tuple[
@@ -66,10 +66,11 @@ def minimax(
         color[state] = Color.GRAY
         # explore state and find its value
         if state.is_terminal():
-            if state.winner() == Turn.P1:
-                val = 1
-            elif state.winner() == Turn.P2:
-                val = -1
+            match state.winner():
+                case Turn.P1:
+                    val = 1
+                case Turn.P2:
+                    val = -1
             graph[state] = []
         else:
             if isMaximizingPlayer:
@@ -92,13 +93,13 @@ def minimax(
                     else:  # tree edge
                         graph[state].append((child, action, EdgeType.TREE))
                         # we need to compute the value of this state, so "call" the function again on it
-                        stack.append((child, False, alpha, beta))
+                        stack.append((child, not isMaximizingPlayer, alpha, beta))
                         shouldContinue = True
                         break
                     # all the children have been explored and values computed
                     best = max(best, val)
                     alpha = max(alpha, best)
-                    if alpha_beta_pruning and beta <= alpha:
+                    if use_alpha_beta_pruning and beta <= alpha:
                         # prune rest of children by not exploring them
                         break
                 if shouldContinue:
@@ -119,12 +120,12 @@ def minimax(
                         graph[state].append((child, action, EdgeType.BACK))
                     elif color[child] == Color.WHITE:  # tree edge
                         graph[state].append((child, action, EdgeType.TREE))
-                        stack.append((child, True, alpha, beta))
+                        stack.append((child, not isMaximizingPlayer, alpha, beta))
                         shouldContinue = True
                         break
                     best = min(best, val)
                     beta = min(beta, best)
-                    if alpha_beta_pruning and beta <= alpha:
+                    if use_alpha_beta_pruning and beta <= alpha:
                         break
                 if shouldContinue:
                     continue
@@ -207,17 +208,21 @@ def draw_optimal_graph(env: chopsticks_v0, results: Dict[ChopsticksState, int]) 
         state = queue.pop(0)
         for action in state.legal_moves():
             child = state.transition(action)
-            if results[child] == 1:
-                if child not in seen:
-                    seen.add(child)
-                    queue.append(child)
-                    dot_graph.add_node(
-                        pydot.Node(
-                            str(child),
-                            label=str(child),
-                            shape=MAXIMIZING_PLAYER_TO_SHAPE[child.turn == Turn.P1],
-                        )
+            if child in results and results[child] > -1 and child not in seen:
+                seen.add(child)
+                queue.append(child)
+                if child.is_terminal():
+                    shape = "box"
+                else:
+                    shape = MAXIMIZING_PLAYER_TO_SHAPE[child.turn == Turn.P1]
+                dot_graph.add_node(
+                    pydot.Node(
+                        str(child),
+                        label=str(child),
+                        shape=shape,
+                        color=VAL_TO_COLOR[results[child]],
                     )
+                )
                 dot_graph.add_edge(
                     pydot.Edge(
                         str(state),
@@ -239,6 +244,8 @@ if __name__ == "__main__":
     env.reset(seed=seed)
     graph, results = minimax(env, False)
     # result with alpha_beta_pruning False and True is different - why? I'd expect it to be the same
+    # is the fact that there are self-loops causing an issue with alpha-beta? Does it not work in that case?
+    # I could implement history tracking and force a draw if a state repeats, that should make the tree an actual tree
     print("done")
     draw_graph(graph, results)
-    # draw_optimal_graph(env, results)
+    draw_optimal_graph(env, results)
