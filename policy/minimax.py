@@ -12,6 +12,8 @@ VAL_TO_COLOR = {
     0: "gray39",
     1: "darkgreen",
     -1: "crimson",
+    1000: "darkorange",
+    -1000: "darkorange",
 }
 MAXIMIZING_PLAYER_TO_SHAPE = {
     True: "house",
@@ -34,7 +36,10 @@ class EdgeType(Enum):
 def minimax(
     env: chopsticks_v0.env,
     use_alpha_beta_pruning: bool = True,
-) -> Tuple[Dict[ChopsticksState, List[ChopsticksState]], Dict[ChopsticksState, int]]:
+) -> Tuple[
+    Dict[ChopsticksState, List[ChopsticksState]],
+    Dict[ChopsticksState, int],
+]:
     stack: List[
         Tuple[
             ChopsticksState,
@@ -48,13 +53,14 @@ def minimax(
         lambda: Color.WHITE
     )  # visited state of each node based on CLRS
     graph: Dict[
-        ChopsticksState, List[Tuple[ChopsticksState, ChopsticksAction, EdgeType]]
+        ChopsticksState,
+        List[Tuple[ChopsticksState, ChopsticksAction, EdgeType]],
     ] = defaultdict(list)  # graph of decision tree
 
     # initialize variables
     stack.append(
         (
-            env.game_state.canonical,  # curr state
+            env.game_state,  # curr state
             True,  # isMaximizingPlayer
             MIN,  # alpha
             MAX,  # beta
@@ -86,8 +92,9 @@ def minimax(
                         graph[state].append((child, action, EdgeType.FORWARD))
                     elif (
                         color[child] == Color.GRAY
-                    ):  # back edge, we've seen but not yet computed the value for child
+                    ):  # back edge, we've seen, but not yet computed the value for child
                         # we have a cycle
+                        # don't explore this node
                         val = 0
                         graph[state].append((child, action, EdgeType.BACK))
                     else:  # tree edge
@@ -123,9 +130,11 @@ def minimax(
                         stack.append((child, not isMaximizingPlayer, alpha, beta))
                         shouldContinue = True
                         break
+                    # all the children have been explored and values computed
                     best = min(best, val)
                     beta = min(beta, best)
                     if use_alpha_beta_pruning and beta <= alpha:
+                        # prune rest of children by not exploring them
                         break
                 if shouldContinue:
                     continue
@@ -138,7 +147,8 @@ def minimax(
 
 def draw_graph(
     graph: Dict[
-        ChopsticksState, List[Tuple[ChopsticksState, ChopsticksAction, EdgeType]]
+        ChopsticksState,
+        List[Tuple[ChopsticksState, ChopsticksAction, EdgeType]],
     ],
     results: Dict[ChopsticksState, int],
     graph_name: str = "output",
@@ -146,41 +156,97 @@ def draw_graph(
     dot_graph = pydot.Dot(
         "Decision Tree for Chopsticks", graph_type="graph", bgcolor="lightgray"
     )
-    for state in graph.keys():
-        # Draw the node
+
+    start_state = ChopsticksState(1, 1, 1, 1, Turn.P1)
+
+    stack = [start_state]
+    seen = {start_state}
+    while stack:
+        state = stack.pop()
         if state.is_terminal():
             shape = "box"
         else:
             shape = MAXIMIZING_PLAYER_TO_SHAPE[state.turn == Turn.P1]
-        color = VAL_TO_COLOR[results[state]]
+
         dot_graph.add_node(
             pydot.Node(
                 str(state),
                 label=str(state),
                 shape=shape,
-                color=color,
+                color=VAL_TO_COLOR[results[state]],
             )
         )
-    for u in graph.keys():
-        for v, action, edge_type in graph[u]:
-            if edge_type == EdgeType.TREE:
-                style = "solid"
+        if state.turn == Turn.P1:
+            best = MIN
+            best_children = []
+            for child, action, edge_type in graph[state]:
+                if results[child] > best:
+                    best = results[child]
+                    best_children = [(child, action, edge_type)]
+                elif results[child] == best:
+                    best_children.append((child, action, edge_type))
+            for child, action, edge_type in best_children:
+                if child not in seen:
+                    seen.add(child)
+                    stack.append(child)
+                    style = "solid"
+                    constraint = "true"
+                    color = "#00000000"
+                    penwidth = "1.0"
+                else:
+                    style = "dashed"
+                    constraint = "false"
+                    color = "#80808080"
+                    penwidth = "0.5"
                 dot_graph.add_edge(
                     pydot.Edge(
-                        str(u),
-                        str(v),
-                        label=str(action.name),
-                        style=style,
+                        str(state),
+                        str(child),
+                        label=str(action),
                         arrowhead="normal",
                         dir="forward",
+                        style=style,
+                        constraint=constraint,
+                        color=color,
+                        penwidth=penwidth,
                     )
                 )
-            elif edge_type == EdgeType.BACK:
-                style = "dashed"
-                pass
-            else:
-                style = "dotted"
-                pass
+        else:
+            best = MAX
+            best_children = []
+            for child, action, edge_type in graph[state]:
+                if results[child] < best:
+                    best = results[child]
+                    best_children = [(child, action, edge_type)]
+                elif results[child] == best:
+                    best_children.append((child, action, edge_type))
+            for child, action, edge_type in best_children:
+                if child not in seen:
+                    seen.add(child)
+                    stack.append(child)
+                    style = "solid"
+                    constraint = "true"
+                    color = "#00000000"
+                    penwidth = "1.0"
+                else:
+                    style = "dashed"
+                    constraint = "false"
+                    color = "#80808080"
+                    penwidth = "0.5"
+                dot_graph.add_edge(
+                    pydot.Edge(
+                        str(state),
+                        str(child),
+                        label=str(action),
+                        arrowhead="normal",
+                        dir="forward",
+                        style=style,
+                        constraint=constraint,
+                        color=color,
+                        penwidth=penwidth,
+                    )
+                )
+
     print("Writing graph to dot...")
     dot_graph.write_raw(f"{graph_name}.dot")
     print(f"Wrote graph as dot file to {graph_name}.dot")
@@ -195,7 +261,9 @@ def draw_optimal_graph(env: chopsticks_v0, results: Dict[ChopsticksState, int]) 
     queue: List[ChopsticksState] = [env.game_state]
     seen: Set[ChopsticksState] = {env.game_state}
     dot_graph = pydot.Dot(
-        "Optimal Decision Tree for Chopsticks", graph_type="graph", bgcolor="lightgray"
+        "Optimal Decision Tree for Chopsticks",
+        graph_type="graph",
+        bgcolor="lightgray",
     )
     dot_graph.add_node(
         pydot.Node(
@@ -227,12 +295,17 @@ def draw_optimal_graph(env: chopsticks_v0, results: Dict[ChopsticksState, int]) 
                     pydot.Edge(
                         str(state),
                         str(child),
-                        label=str(action.name),
+                        label=str(action),
                         arrowhead="normal",
                         dir="forward",
                     )
                 )
+    print("Writing optimal graph to dot...")
+    dot_graph.write_raw("optimal_graph.dot")
+    print("Wrote optimal graph as dot file to optimal_graph.dot")
+    print("Writing optimal graph to png...")
     dot_graph.write_png("optimal_graph.png")
+    print("Wrote optimal graph as png file to optimal_graph.png")
 
 
 # TODO: build an agent to play optimally
@@ -242,7 +315,7 @@ if __name__ == "__main__":
     env = chopsticks_v0.env()
     seed = None
     env.reset(seed=seed)
-    graph, results = minimax(env, False)
+    graph, results = minimax(env, True)
     # result with alpha_beta_pruning False and True is different - why? I'd expect it to be the same
     # is the fact that there are self-loops causing an issue with alpha-beta? Does it not work in that case?
     # I could implement history tracking and force a draw if a state repeats, that should make the tree an actual tree

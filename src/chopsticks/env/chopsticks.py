@@ -123,10 +123,10 @@ class ChopsticksEnv(AECEnv):  # type: ignore
     def observe(self, agent: str) -> Observation:
         observation = np.array(
             [
-                self.game_state.p1_left,
-                self.game_state.p1_right,
-                self.game_state.p2_left,
-                self.game_state.p2_right,
+                self.game_state.p1_min,
+                self.game_state.p1_max,
+                self.game_state.p2_min,
+                self.game_state.p2_max,
                 self.game_state.turn.value,
             ],
             dtype=np.int8,
