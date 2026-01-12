@@ -25,7 +25,7 @@ def env(render_mode: str | None = None) -> AECEnv:
     return env
 
 
-class ChopsticksEnv(AECEnv):  # type: ignore
+class ChopsticksEnv(AECEnv):
     """
     Description:
         Implements the game of Chopsticks. The game starts with each player having one chopstick on their left and right
@@ -145,7 +145,7 @@ class ChopsticksEnv(AECEnv):  # type: ignore
         pass
 
     @functools.lru_cache(maxsize=None)
-    def observation_space(self, agent: str) -> spaces.Dict:
+    def observation_space(self, agent: str) -> spaces.Dict:  # type: ignore[override]
         return spaces.Dict(
             {
                 "observation": spaces.MultiDiscrete([5, 5, 5, 5, 2], dtype=np.int8),
@@ -154,5 +154,5 @@ class ChopsticksEnv(AECEnv):  # type: ignore
         )
 
     @functools.lru_cache(maxsize=None)
-    def action_space(self, agent: str) -> spaces.Discrete:
+    def action_space(self, agent: str) -> spaces.Discrete[np.integer[Any]]:  # type: ignore[override]
         return spaces.Discrete(len(ChopsticksAction))

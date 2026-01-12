@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Generator
+from typing import Generator, Set, Tuple
 
 
 class ChopsticksAction(IntEnum):
@@ -46,6 +46,8 @@ class ChopsticksState:
         self.p2_min = p2_min
         self.p2_max = p2_max
         self.turn = turn
+        self.is_repeated = False
+        self.history: Set[Tuple[int, int, int, int, Turn]] = set()
 
     def __hash__(self) -> int:
         return hash(
@@ -55,6 +57,7 @@ class ChopsticksState:
                 self.p2_min,
                 self.p2_max,
                 self.turn,
+                self.is_repeated,
             )
         )
 
@@ -67,13 +70,14 @@ class ChopsticksState:
             and self.p2_min == other.p2_min
             and self.p2_max == other.p2_max
             and self.turn == other.turn
+            and self.is_repeated == other.is_repeated
         )
 
     def __str__(self) -> str:
-        return f"p1=({self.p1_min}, {self.p1_max}), p2=({self.p2_min}, {self.p2_max}), t={self.turn}"
+        return f"p1=({self.p1_min}, {self.p1_max}), p2=({self.p2_min}, {self.p2_max}), t={self.turn}, r={self.is_repeated}"
 
     def __repr__(self) -> str:
-        return f"ChopsticksState(p1_min={self.p1_min}, p1_max={self.p1_max}, p2_min={self.p2_min}, p2_max={self.p2_max}, turn={self.turn})"
+        return f"ChopsticksState(p1_min={self.p1_min}, p1_max={self.p1_max}, p2_min={self.p2_min}, p2_max={self.p2_max}, turn={self.turn}, repeated={self.is_repeated})"
 
     def transition(self, action: ChopsticksAction) -> "ChopsticksState":
         # assign p (player whose turn it is) and o (other player) based on whose turn it is
@@ -124,12 +128,24 @@ class ChopsticksState:
                 p_max,
                 Turn.P1,
             )
+
+        # invariant: a state's history is the set of all states visited *prior* to the current state
+        new_state.history = self.history | {
+            (self.p1_min, self.p1_max, self.p2_min, self.p2_max, self.turn)
+        }
+        new_state.is_repeated = (
+            new_state.p1_min,
+            new_state.p1_max,
+            new_state.p2_min,
+            new_state.p2_max,
+            new_state.turn,
+        ) in new_state.history
         return new_state
 
     def is_terminal(self) -> bool:
-        return (self.p1_min == 0 and self.p1_max == 0) or (
-            self.p2_min == 0 and self.p2_max == 0
-        )
+        p1_dead = self.p1_min == 0 and self.p1_max == 0
+        p2_dead = self.p2_min == 0 and self.p2_max == 0
+        return p1_dead or p2_dead or self.is_repeated
 
     def legal_moves(self) -> Generator[ChopsticksAction, None, None]:
         if self.turn == Turn.P1:
@@ -157,10 +173,13 @@ class ChopsticksState:
                 yield ChopsticksAction.MIN_TO_SELF
                 yield ChopsticksAction.MAX_TO_SELF
 
-    def winner(self) -> Turn:
-        if self.p1_min == 0 and self.p1_max == 0:
-            return Turn.P2
-        elif self.p2_min == 0 and self.p2_max == 0:
-            return Turn.P1
+    def winner(self) -> Turn | None:
+        if self.is_terminal():
+            if self.p1_min == 0 and self.p1_max == 0:
+                return Turn.P2
+            elif self.p2_min == 0 and self.p2_max == 0:
+                return Turn.P1
+            else:
+                return None
         else:
             raise ValueError("Game is not over yet")

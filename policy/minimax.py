@@ -3,8 +3,9 @@ from enum import Enum, auto
 from typing import Dict, List, Set, Tuple
 
 import pydot
+from tqdm import tqdm
 
-from chopsticks import chopsticks_v0
+from chopsticks.env.chopsticks import ChopsticksEnv
 from chopsticks.env.state import ChopsticksAction, ChopsticksState, Turn
 
 MAX, MIN = 1000, -1000
@@ -34,10 +35,13 @@ class EdgeType(Enum):
 
 
 def minimax(
-    env: chopsticks_v0.env,
+    env: ChopsticksEnv,
     use_alpha_beta_pruning: bool = True,
 ) -> Tuple[
-    Dict[ChopsticksState, List[ChopsticksState]],
+    Dict[
+        ChopsticksState,
+        List[Tuple[ChopsticksState, ChopsticksAction, EdgeType]],
+    ],
     Dict[ChopsticksState, int],
 ]:
     stack: List[
@@ -67,16 +71,20 @@ def minimax(
         )
     )
 
+    pbar = tqdm(total=1250, desc="Exploring states", unit="state")
     while stack:
         state, isMaximizingPlayer, alpha, beta = stack[-1]
         color[state] = Color.GRAY
         # explore state and find its value
+        val: int = 0
         if state.is_terminal():
             match state.winner():
                 case Turn.P1:
                     val = 1
                 case Turn.P2:
                     val = -1
+                case None:
+                    val = 0
             graph[state] = []
         else:
             if isMaximizingPlayer:
@@ -138,11 +146,84 @@ def minimax(
                         break
                 if shouldContinue:
                     continue
+                # we now have the value of the current node
                 val = best
         color[state] = Color.BLACK
         cache[state] = val
+        pbar.update(1)
+        # print(f"Explored state: {state} with history {state.history}")
         stack.pop()
+    pbar.close()
     return graph, cache
+
+
+def add_node(
+    dot_graph: pydot.Dot,
+    results: Dict[ChopsticksState, int],
+    state: ChopsticksState,
+) -> None:
+    "Convenience function to draw a node in a consistent format"
+
+    if state.is_terminal():
+        shape = "box"
+    else:
+        shape = MAXIMIZING_PLAYER_TO_SHAPE[state.turn == Turn.P1]
+    dot_graph.add_node(
+        pydot.Node(
+            str(state),
+            label=str(state),
+            shape=shape,
+            color=VAL_TO_COLOR[results[state]],
+        )
+    )
+
+
+def add_edge(
+    dot_graph: pydot.Dot,
+    from_state: ChopsticksState,
+    to_state: ChopsticksState,
+    action: ChopsticksAction,
+    edge_type: EdgeType,
+) -> None:
+    "Convenience function to draw an edge in a consistent format"
+    dir = "forward"
+    style = "solid"
+    constraint = True
+    color = "#00000000"
+    penwidth = 1.0
+    match edge_type:
+        case EdgeType.FORWARD:
+            dir = "forward"
+            style = "dashed"
+            constraint = True
+            color = "#00000080"
+            penwidth = 1.0
+        case EdgeType.BACK:
+            dir = "back"
+            style = "dashed"
+            constraint = False
+            color = "#80808080"
+            penwidth = 0.5
+        case EdgeType.TREE:
+            dir = "forward"
+            style = "solid"
+            constraint = True
+            color = "#000000ff"
+            penwidth = 1.0
+    # color = "black"  # reset color to default
+    dot_graph.add_edge(
+        pydot.Edge(
+            str(from_state),
+            str(to_state),
+            arrowhead="normal",
+            dir=dir,
+            label=str(action),
+            style=style,
+            constraint=constraint,
+            color=color,
+            penwidth=penwidth,
+        )
+    )
 
 
 def draw_graph(
@@ -154,7 +235,10 @@ def draw_graph(
     graph_name: str = "output",
 ) -> None:
     dot_graph = pydot.Dot(
-        "Decision Tree for Chopsticks", graph_type="graph", bgcolor="lightgray"
+        "Decision Tree for Chopsticks",
+        graph_type="graph",
+        bgcolor="lightgray",
+        simplify=True,
     )
 
     start_state = ChopsticksState(1, 1, 1, 1, Turn.P1)
@@ -163,19 +247,7 @@ def draw_graph(
     seen = {start_state}
     while stack:
         state = stack.pop()
-        if state.is_terminal():
-            shape = "box"
-        else:
-            shape = MAXIMIZING_PLAYER_TO_SHAPE[state.turn == Turn.P1]
-
-        dot_graph.add_node(
-            pydot.Node(
-                str(state),
-                label=str(state),
-                shape=shape,
-                color=VAL_TO_COLOR[results[state]],
-            )
-        )
+        add_node(dot_graph, results, state)
         if state.turn == Turn.P1:
             best = MIN
             best_children = []
@@ -189,27 +261,12 @@ def draw_graph(
                 if child not in seen:
                     seen.add(child)
                     stack.append(child)
-                    style = "solid"
-                    constraint = "true"
-                    color = "#00000000"
-                    penwidth = "1.0"
-                else:
-                    style = "dashed"
-                    constraint = "false"
-                    color = "#80808080"
-                    penwidth = "0.5"
-                dot_graph.add_edge(
-                    pydot.Edge(
-                        str(state),
-                        str(child),
-                        label=str(action),
-                        arrowhead="normal",
-                        dir="forward",
-                        style=style,
-                        constraint=constraint,
-                        color=color,
-                        penwidth=penwidth,
-                    )
+                add_edge(
+                    dot_graph,
+                    state,
+                    child,
+                    action,
+                    edge_type,
                 )
         else:
             best = MAX
@@ -224,39 +281,31 @@ def draw_graph(
                 if child not in seen:
                     seen.add(child)
                     stack.append(child)
-                    style = "solid"
-                    constraint = "true"
-                    color = "#00000000"
-                    penwidth = "1.0"
-                else:
-                    style = "dashed"
-                    constraint = "false"
-                    color = "#80808080"
-                    penwidth = "0.5"
-                dot_graph.add_edge(
-                    pydot.Edge(
-                        str(state),
-                        str(child),
-                        label=str(action),
-                        arrowhead="normal",
-                        dir="forward",
-                        style=style,
-                        constraint=constraint,
-                        color=color,
-                        penwidth=penwidth,
-                    )
+                add_edge(
+                    dot_graph,
+                    state,
+                    child,
+                    action,
+                    edge_type,
                 )
 
     print("Writing graph to dot...")
-    dot_graph.write_raw(f"{graph_name}.dot")
+    dot_graph.write(f"{graph_name}.dot", format="raw")
     print(f"Wrote graph as dot file to {graph_name}.dot")
 
     print("Writing graph to png...")
-    dot_graph.write_png(f"{graph_name}.png")
+    dot_graph.write(f"{graph_name}.png", format="png")
     print(f"Wrote graph as png file to {graph_name}.png")
 
 
-def draw_optimal_graph(env: chopsticks_v0, results: Dict[ChopsticksState, int]) -> None:
+def draw_optimal_graph(
+    env: ChopsticksEnv,
+    graph: Dict[
+        ChopsticksState,
+        List[Tuple[ChopsticksState, ChopsticksAction, EdgeType]],
+    ],
+    results: Dict[ChopsticksState, int],
+) -> None:
     env.reset()
     queue: List[ChopsticksState] = [env.game_state]
     seen: Set[ChopsticksState] = {env.game_state}
@@ -264,61 +313,117 @@ def draw_optimal_graph(env: chopsticks_v0, results: Dict[ChopsticksState, int]) 
         "Optimal Decision Tree for Chopsticks",
         graph_type="graph",
         bgcolor="lightgray",
+        simplify=True,
     )
-    dot_graph.add_node(
-        pydot.Node(
-            str(env.game_state),
-            label=str(env.game_state),
-            shape=MAXIMIZING_PLAYER_TO_SHAPE[env.game_state.turn == Turn.P1],
-        )
+    add_node(
+        dot_graph,
+        results,
+        env.game_state,
     )
     while queue:
         state = queue.pop(0)
-        for action in state.legal_moves():
-            child = state.transition(action)
-            if child in results and results[child] > -1 and child not in seen:
+        for child, action, edge_type in graph[state]:
+            if results[child] > -1 and child not in seen:
                 seen.add(child)
                 queue.append(child)
-                if child.is_terminal():
-                    shape = "box"
-                else:
-                    shape = MAXIMIZING_PLAYER_TO_SHAPE[child.turn == Turn.P1]
-                dot_graph.add_node(
-                    pydot.Node(
-                        str(child),
-                        label=str(child),
-                        shape=shape,
-                        color=VAL_TO_COLOR[results[child]],
-                    )
+                add_node(dot_graph, results, child)
+                add_edge(
+                    dot_graph,
+                    state,
+                    child,
+                    action,
+                    edge_type,
                 )
-                dot_graph.add_edge(
-                    pydot.Edge(
-                        str(state),
-                        str(child),
-                        label=str(action),
-                        arrowhead="normal",
-                        dir="forward",
-                    )
-                )
+
     print("Writing optimal graph to dot...")
-    dot_graph.write_raw("optimal_graph.dot")
+    dot_graph.write("optimal_graph.dot", format="raw")
     print("Wrote optimal graph as dot file to optimal_graph.dot")
     print("Writing optimal graph to png...")
-    dot_graph.write_png("optimal_graph.png")
+    dot_graph.write("optimal_graph.png", format="png")
     print("Wrote optimal graph as png file to optimal_graph.png")
+
+
+def draw_p1_winning_p2_all_moves(
+    env: ChopsticksEnv,
+    graph: Dict[
+        ChopsticksState,
+        List[Tuple[ChopsticksState, ChopsticksAction, EdgeType]],
+    ],
+    results: Dict[ChopsticksState, int],
+    graph_name: str = "p1_winning_p2_all",
+) -> None:
+    """Graph showing P1's winning actions and all possible actions for P2."""
+    env.reset()
+    queue: List[ChopsticksState] = [env.game_state]
+    seen: Set[ChopsticksState] = {env.game_state}
+    dot_graph = pydot.Dot(
+        "P1 Winning Actions with All P2 Moves",
+        graph_type="graph",
+        bgcolor="lightgray",
+        simplify=True,
+    )
+    add_node(dot_graph, results, env.game_state)
+
+    while queue:
+        state = queue.pop(0)
+        add_node(dot_graph, results, state)
+
+        if state.turn == Turn.P1:
+            # For P1 (maximizing player), only show best move(s)
+            best_value = MIN
+            best_actions = []
+            for child, action, edge_type in graph[state]:
+                if results[child] > best_value:
+                    best_value = results[child]
+                    best_actions = [(child, action, edge_type)]
+                elif results[child] == best_value:
+                    best_actions.append((child, action, edge_type))
+
+            for child, action, edge_type in best_actions:
+                if child not in seen:
+                    seen.add(child)
+                    queue.append(child)
+                add_edge(
+                    dot_graph,
+                    state,
+                    child,
+                    action,
+                    edge_type,
+                )
+        else:
+            # For P2 (minimizing player), show all possible moves
+            for child, action, edge_type in graph[state]:
+                if child not in seen:
+                    seen.add(child)
+                    queue.append(child)
+                add_edge(
+                    dot_graph,
+                    state,
+                    child,
+                    action,
+                    edge_type,
+                )
+
+    print("Writing P1 winning/P2 all moves graph to dot...")
+    dot_graph.write(f"{graph_name}.dot", format="raw")
+    print(f"Wrote graph as dot file to {graph_name}.dot")
+    print("Writing graph to png...")
+    dot_graph.write(f"{graph_name}.png", format="png")
+    print(f"Wrote graph as png file to {graph_name}.png")
 
 
 # TODO: build an agent to play optimally
 
 
 if __name__ == "__main__":
-    env = chopsticks_v0.env()
+    env = ChopsticksEnv(render_mode=None)
     seed = None
     env.reset(seed=seed)
-    graph, results = minimax(env, True)
+    graph, results = minimax(env, False)
     # result with alpha_beta_pruning False and True is different - why? I'd expect it to be the same
     # is the fact that there are self-loops causing an issue with alpha-beta? Does it not work in that case?
     # I could implement history tracking and force a draw if a state repeats, that should make the tree an actual tree
     print("done")
     draw_graph(graph, results)
-    draw_optimal_graph(env, results)
+    draw_optimal_graph(env, graph, results)
+    draw_p1_winning_p2_all_moves(env, graph, results)

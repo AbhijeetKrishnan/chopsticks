@@ -11,8 +11,11 @@ for agent in env.agent_iter():
     if terminated or truncated:
         action = None
     else:
-        mask = obs["action_mask"]
-        action = env.action_space(agent).sample(mask)
+        if obs:
+            action_mask = obs["action_mask"]
+            action = env.action_space(agent).sample(action_mask)
+        else:
+            action = env.action_space(agent).sample()
     # print(action, env.unwrapped.game_state.visited)
     env.step(action)
     env.render()

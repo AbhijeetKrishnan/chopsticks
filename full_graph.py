@@ -12,7 +12,7 @@ if __name__ == "__main__":
             for l2 in range(5):
                 for r2 in range(5):
                     for turn in [Turn.P1, Turn.P2]:
-                        state = ChopsticksState(l1, r1, l2, r2, turn).canonical
+                        state = ChopsticksState(l1, r1, l2, r2, turn)
                         shape = "house" if turn == Turn.P1 else "invhouse"
                         if state.is_terminal():
                             color = (
@@ -38,7 +38,7 @@ if __name__ == "__main__":
             for l2 in range(5):
                 for r2 in range(5):
                     for turn in [Turn.P1, Turn.P2]:
-                        state = ChopsticksState(l1, r1, l2, r2, turn).canonical
+                        state = ChopsticksState(l1, r1, l2, r2, turn)
                         for action in state.legal_moves():
                             child = state.transition(action)
                             edge = pydot.Edge(
@@ -50,4 +50,5 @@ if __name__ == "__main__":
                             )
                             graph.add_edge(edge)
 
-    graph.write_raw("full_graph.dot")
+    graph.write("full_graph.dot", format="raw")
+    # graph.write("full_graph.png", format="png")
