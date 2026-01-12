@@ -1,6 +1,8 @@
 # Chopsticks AEC Environment
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![pyrefly](https://img.shields.io/endpoint?url=https://pyrefly.org/badge.json)](https://github.com/facebook/pyrefly)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
 This is an implementation of the game of Chopsticks as a [PettingZoo](https://github.com/PettingZoo-Team/PettingZoo)
@@ -15,6 +17,10 @@ chopsticks to another hand. Transferring a chopstick involves touching the other
 another, thereby adding the chopsticks in your hand to the other, modulo 5. If the total reaches 0, that hand is
 considered "dead", and is out of play. If a player loses both their hands, then they lose.
 
+It is possible to enter loops while playing caused due to a repetition of positions. We introduce a new rule that
+declares a game a draw if any position is repeated more than once. A position is repeated if the players have the same
+number of chopsticks in their hands (unordered) and it's the same player's turn as a previous position.
+
 ## Installation
 
 ### Local
@@ -22,7 +28,7 @@ considered "dead", and is out of play. If a player loses both their hands, then 
 ```bash
 git clone git@github.com:AbhijeetKrishnan/chopsticks.git
 cd chopsticks
-python3 -m pip install '.'
+uv build
 ```
 
 ## Usage
@@ -43,8 +49,8 @@ See [`demo.py](./demo.py) for a script that implements a simple random policy to
 Tests are run using [pytest](http://doc.pytest.org/).
 
 ```bash
-git clone hit@github.com:AbhijeetKrishnan/chopsticks.git
+git clone git@github.com:AbhijeetKrishnan/chopsticks.git
 cd chopsticks
-python3 -m pip install '.[dev]'
+uv build
 pytest
 ```

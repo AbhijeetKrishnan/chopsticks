@@ -17,33 +17,45 @@ version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "pettingzoo" },
-    { name = "pre-commit" },
     { name = "pydot" },
-    { name = "pyrefly" },
-    { name = "pytest" },
-    { name = "ruff" },
     { name = "tqdm" },
 ]
 
 [package.optional-dependencies]
 dev = [
     { name = "pre-commit" },
+    { name = "pyrefly" },
     { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pre-commit" },
+    { name = "pyrefly" },
+    { name = "pytest" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "pettingzoo" },
-    { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pydot", specifier = ">=4.0.1" },
-    { name = "pyrefly", specifier = ">=0.47.0" },
-    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pyrefly", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
-    { name = "ruff", specifier = ">=0.14.11" },
+    { name = "ruff", marker = "extra == 'dev'" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pre-commit", specifier = ">=4.5.1" },
+    { name = "pyrefly", specifier = ">=0.47.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "ruff", specifier = ">=0.14.11" },
+]
 
 [[package]]
 name = "cloudpickle"

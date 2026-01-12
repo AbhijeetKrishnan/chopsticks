@@ -412,6 +412,44 @@ def draw_p1_winning_p2_all_moves(
     print(f"Wrote graph as png file to {graph_name}.png")
 
 
+def print_graph_stats(
+    results: Dict[ChopsticksState, int],
+    graph: Dict[
+        ChopsticksState,
+        List[Tuple[ChopsticksState, ChopsticksAction, EdgeType]],
+    ],
+) -> None:
+    print("Graph statistics:")
+    print(f"Number of states explored: {len(results)}")
+    print(f"Number of states in graph: {len(graph)}")
+    print(
+        f"Number of winning states for P1: {sum(1 for v in results.values() if v == 1)}"
+    )
+    print(
+        f"Number of winning states for P2: {sum(1 for v in results.values() if v == -1)}"
+    )
+    print(f"Number of terminal states: {sum(1 for s in results if s.is_terminal())}")
+    print(f"Number of edges explored: {sum(len(v) for v in graph.values())}")
+
+
+def find_missing_states(
+    results: Dict[ChopsticksState, int],
+) -> List[ChopsticksState]:
+    """Find states that are not present in the results dictionary."""
+    missing_states = []
+    for l1 in range(5):
+        for r1 in range(5):
+            for l2 in range(5):
+                for r2 in range(5):
+                    for turn in [Turn.P1, Turn.P2]:
+                        for is_repeated in [True, False]:
+                            state = ChopsticksState(l1, r1, l2, r2, turn)
+                            state.is_repeated = is_repeated
+                            if state not in results:
+                                missing_states.append(state)
+    return missing_states
+
+
 # TODO: build an agent to play optimally
 
 
@@ -421,6 +459,12 @@ if __name__ == "__main__":
     env.reset(seed=seed)
     graph, results = minimax(env, False)
     print("done")
+    print_graph_stats(results, graph)
+    missing_states = find_missing_states(results)
+    # print("Missing states:")
+    # for state in missing_states:
+    #     print(state)
+    print(f"Missing states: {len(missing_states)}")
     draw_graph(graph, results)
     draw_optimal_graph(env, graph, results)
     draw_p1_winning_p2_all_moves(env, graph, results)
