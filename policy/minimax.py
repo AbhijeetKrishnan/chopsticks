@@ -420,9 +420,6 @@ if __name__ == "__main__":
     seed = None
     env.reset(seed=seed)
     graph, results = minimax(env, False)
-    # result with alpha_beta_pruning False and True is different - why? I'd expect it to be the same
-    # is the fact that there are self-loops causing an issue with alpha-beta? Does it not work in that case?
-    # I could implement history tracking and force a draw if a state repeats, that should make the tree an actual tree
     print("done")
     draw_graph(graph, results)
     draw_optimal_graph(env, graph, results)
