@@ -19,7 +19,12 @@ classifiers = [
 ]
 requires-python = ">= 3.12"
 dependencies = [
-    "pettingzoo"
+    "pettingzoo",
+    "pre-commit>=4.5.1",
+    "pydot>=4.0.1",
+    "pyrefly>=0.47.0",
+    "pytest>=9.0.2",
+    "ruff>=0.14.11",
 ]
 
 [project.urls]
@@ -29,6 +34,8 @@ Repository = "https://github.com/AbhijeetKrishnan/chopsticks"
 [project.optional-dependencies]
 dev = [
     "pre-commit",
+    "pyrefly",
+    "ruff",
     "pytest",
 ]
 

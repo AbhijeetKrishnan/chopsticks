@@ -2,7 +2,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
@@ -10,19 +10,20 @@ repos:
     -   id: check-added-large-files
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.8.4
+    rev: v0.14.11
     hooks:
         # Run the linter.
     -   id: ruff
         args: [ --fix ]
         # Run the formatter.
     -   id: ruff-format
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.0
+-   repo: https://github.com/facebook/pyrefly-pre-commit
+    rev: 0.47.0  # Note: this is the version of the pre-commit hook, NOT the pyrefly version used for type checking
     hooks:
-    -   id: mypy
-        language: system
-        pass_filenames: false
+    -   id: pyrefly-check
+        name: Pyrefly (type checking)
+        pass_filenames: false  # Recommended to do full repo checks. However, you can change this to `true` to only check changed files
+        language: system  # Use system-installed pyrefly
 -   repo: local
     hooks:
     -   id: pytest-check
