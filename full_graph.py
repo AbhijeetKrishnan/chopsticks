@@ -2,6 +2,8 @@ import pydot
 
 from chopsticks.env.state import ChopsticksState, Turn
 
+"""Generate the full decision tree for the game of Chopsticks and save it as a DOT file."""
+
 if __name__ == "__main__":
     graph = pydot.Dot(
         "Decision Tree for Chopsticks", graph_type="graph", bgcolor="lightgray"

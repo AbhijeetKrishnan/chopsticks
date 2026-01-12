@@ -8,7 +8,11 @@ from tqdm import tqdm
 from chopsticks.env.chopsticks import ChopsticksEnv
 from chopsticks.env.state import ChopsticksAction, ChopsticksState, Turn
 
+"""Minimax algorithm with alpha-beta pruning for the game of Chopsticks.
+Generates a decision tree and visualizes it using pydot."""
+
 MAX, MIN = 1000, -1000
+
 VAL_TO_COLOR = {
     0: "gray39",
     1: "darkgreen",
@@ -16,6 +20,7 @@ VAL_TO_COLOR = {
     1000: "darkorange",
     -1000: "darkorange",
 }
+
 MAXIMIZING_PLAYER_TO_SHAPE = {
     True: "house",
     False: "invhouse",
@@ -23,12 +28,16 @@ MAXIMIZING_PLAYER_TO_SHAPE = {
 
 
 class Color(Enum):
+    """Color states for nodes during minimax traversal based on CLRS."""
+
     WHITE = auto()
     GRAY = auto()
     BLACK = auto()
 
 
 class EdgeType(Enum):
+    """Types of edges during minimax traversal based on CLRS."""
+
     FORWARD = auto()
     BACK = auto()
     TREE = auto()
@@ -44,6 +53,8 @@ def minimax(
     ],
     Dict[ChopsticksState, int],
 ]:
+    """Perform minimax search with optional alpha-beta pruning on the Chopsticks environment."""
+
     stack: List[
         Tuple[
             ChopsticksState,
@@ -162,7 +173,7 @@ def add_node(
     results: Dict[ChopsticksState, int],
     state: ChopsticksState,
 ) -> None:
-    "Convenience function to draw a node in a consistent format"
+    """Convenience function to draw a node in a consistent format"""
 
     if state.is_terminal():
         shape = "box"
@@ -185,7 +196,8 @@ def add_edge(
     action: ChopsticksAction,
     edge_type: EdgeType,
 ) -> None:
-    "Convenience function to draw an edge in a consistent format"
+    """Convenience function to draw an edge in a consistent format"""
+
     dir = "forward"
     style = "solid"
     constraint = True
@@ -234,6 +246,8 @@ def draw_graph(
     results: Dict[ChopsticksState, int],
     graph_name: str = "output",
 ) -> None:
+    """Draw the full decision tree based on the minimax results."""
+
     dot_graph = pydot.Dot(
         "Decision Tree for Chopsticks",
         graph_type="graph",
@@ -306,6 +320,8 @@ def draw_optimal_graph(
     ],
     results: Dict[ChopsticksState, int],
 ) -> None:
+    """Graph showing only optimal moves for both players."""
+
     env.reset()
     queue: List[ChopsticksState] = [env.game_state]
     seen: Set[ChopsticksState] = {env.game_state}
@@ -353,6 +369,7 @@ def draw_p1_winning_p2_all_moves(
     graph_name: str = "p1_winning_p2_all",
 ) -> None:
     """Graph showing P1's winning actions and all possible actions for P2."""
+
     env.reset()
     queue: List[ChopsticksState] = [env.game_state]
     seen: Set[ChopsticksState] = {env.game_state}

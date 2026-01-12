@@ -1,8 +1,12 @@
 from enum import IntEnum
 from typing import Generator, Set, Tuple
 
+"""Defines the game state and possible actions for a game of Chopsticks."""
+
 
 class ChopsticksAction(IntEnum):
+    """Enum representing the possible actions in Chopsticks."""
+
     MIN_TO_MIN = 0
     MIN_TO_MAX = 1
     MAX_TO_MIN = 2
@@ -11,6 +15,8 @@ class ChopsticksAction(IntEnum):
     MAX_TO_SELF = 5
 
     def __str__(self) -> str:
+        """Return a short string representation of the action."""
+
         match self.name:
             case "MIN_TO_MIN":
                 return "m2m"
@@ -28,11 +34,22 @@ class ChopsticksAction(IntEnum):
 
 
 class Turn(IntEnum):
+    """Enum representing whose turn it is."""
+
     P1 = 0
     P2 = 1
 
 
 class ChopsticksState:
+    """Represents the game state in Chopsticks.
+
+    The state treats each player's hands as a (min, max) tuple to reduce the number of actions in the actions space.
+    Otherwise, we'd have to consider left and right hands separately, leading to extra actions that are functionally
+    equivalent.
+
+    The state also tracks whether it has been repeated to handle infinite loops.
+    """
+
     def __init__(
         self,
         p1_min: int,
@@ -80,6 +97,8 @@ class ChopsticksState:
         return f"ChopsticksState(p1_min={self.p1_min}, p1_max={self.p1_max}, p2_min={self.p2_min}, p2_max={self.p2_max}, turn={self.turn}, repeated={self.is_repeated})"
 
     def transition(self, action: ChopsticksAction) -> "ChopsticksState":
+        """Return the new state after applying the given action."""
+
         # assign p (player whose turn it is) and o (other player) based on whose turn it is
         if self.turn == Turn.P1:
             p_min = self.p1_min
@@ -140,14 +159,21 @@ class ChopsticksState:
             new_state.p2_max,
             new_state.turn,
         ) in new_state.history
+
         return new_state
 
     def is_terminal(self) -> bool:
+        """Return if the game is over due to a player losing or a repeated state."""
+
         p1_dead = self.p1_min == 0 and self.p1_max == 0
         p2_dead = self.p2_min == 0 and self.p2_max == 0
         return p1_dead or p2_dead or self.is_repeated
 
     def legal_moves(self) -> Generator[ChopsticksAction, None, None]:
+        """Yield all legal actions for the current player.
+
+        Every move is legal at any time if the hands involved are not zero."""
+
         if self.turn == Turn.P1:
             if self.p1_min != 0 and self.p2_min != 0:
                 yield ChopsticksAction.MIN_TO_MIN
@@ -174,6 +200,8 @@ class ChopsticksState:
                 yield ChopsticksAction.MAX_TO_SELF
 
     def winner(self) -> Turn | None:
+        """Return the winner of the game if it is over."""
+
         if self.is_terminal():
             if self.p1_min == 0 and self.p1_max == 0:
                 return Turn.P2

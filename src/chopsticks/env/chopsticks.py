@@ -35,6 +35,9 @@ class ChopsticksEnv(AECEnv):
         "dead" and cannot be used. The game ends when both hands of a player are dead, with the other player declared
         the winner.
 
+        This implementation also includes a rule to prevent infinite loops: if a game state is repeated, the game ends
+        in a draw.
+
     Observation:
         An array of five integers, with the first four representing the number of chopsticks in each player's hands, and
         the last one representing who's turn it is. The first two integers represent the number of chopsticks in player
@@ -52,6 +55,7 @@ class ChopsticksEnv(AECEnv):
 
     Episode Termination:
         - At least one of the players has both hands dead.
+        - A game state is repeated.
     """
 
     metadata = {
