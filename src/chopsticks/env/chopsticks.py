@@ -1,4 +1,3 @@
-import functools
 from typing import Any, Dict, Tuple, TypedDict
 
 import numpy as np
@@ -69,6 +68,16 @@ class ChopsticksEnv(AECEnv):
         super().__init__()
         self.render_mode = render_mode
         self.possible_agents = ["player_0", "player_1"]
+        # Both agents share one observation/action space; build them once per
+        # env so each env keeps its own sampling RNG (PettingZoo also requires
+        # that a given agent always gets back the same space object).
+        self._observation_space: spaces.Dict = spaces.Dict(
+            {
+                "observation": spaces.MultiDiscrete([5, 5, 5, 5, 2], dtype=np.int8),
+                "action_mask": spaces.MultiBinary(len(ChopsticksAction)),
+            }
+        )
+        self._action_space: spaces.Discrete = spaces.Discrete(len(ChopsticksAction))
 
     def reset(
         self, seed: int | None = None, options: Dict[str, Any] | None = None
@@ -148,15 +157,8 @@ class ChopsticksEnv(AECEnv):
     def close(self) -> None:
         pass
 
-    @functools.lru_cache(maxsize=None)
-    def observation_space(self, agent: str) -> spaces.Dict:  # type: ignore[override]
-        return spaces.Dict(
-            {
-                "observation": spaces.MultiDiscrete([5, 5, 5, 5, 2], dtype=np.int8),
-                "action_mask": spaces.MultiBinary(len(ChopsticksAction)),
-            }
-        )
+    def observation_space(self, agent: str) -> spaces.Dict:
+        return self._observation_space
 
-    @functools.lru_cache(maxsize=None)
-    def action_space(self, agent: str) -> spaces.Discrete[np.integer[Any]]:  # type: ignore[override]
-        return spaces.Discrete(len(ChopsticksAction))
+    def action_space(self, agent: str) -> spaces.Discrete:
+        return self._action_space
