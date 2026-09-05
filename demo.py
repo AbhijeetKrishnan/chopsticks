@@ -16,7 +16,6 @@ for agent in env.agent_iter():
             action = env.action_space(agent).sample(action_mask)
         else:
             action = env.action_space(agent).sample()
-    # print(action, env.unwrapped.game_state.visited)
     env.step(action)
     env.render()
 env.close()

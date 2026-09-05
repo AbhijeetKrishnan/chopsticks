@@ -1,7 +1,7 @@
+"""Defines the game state and possible actions for a game of Chopsticks."""
+
 from enum import IntEnum
 from typing import Generator, Set, Tuple
-
-"""Defines the game state and possible actions for a game of Chopsticks."""
 
 
 class ChopsticksAction(IntEnum):
@@ -38,6 +38,11 @@ class Turn(IntEnum):
 
     P1 = 0
     P2 = 1
+
+    def __str__(self) -> str:
+        """Return the player label, e.g. ``"P1"``."""
+
+        return self.name
 
 
 class ChopsticksState:
