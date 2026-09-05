@@ -28,6 +28,9 @@ dependencies = [
 Repository = "https://github.com/AbhijeetKrishnan/chopsticks"
 "Bug Tracker" = "https://github.com/AbhijeetKrishnan/chopsticks/issues"
 
+[project.scripts]
+chopsticks-solve = "chopsticks.solver.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "pre-commit",
