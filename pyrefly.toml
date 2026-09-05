@@ -1,16 +1,25 @@
 # Pyrefly type-checker configuration.
 # See https://pyrefly.org/en/docs/configuration/ for the full option list.
 
-python_version = "3.12"
+python-version = "3.12"
 
-project_includes = [
+# src layout: make `import chopsticks` resolve from ./src without relying on an
+# editable install being present (mirrors mypy's mypy_path / explicit_package_bases).
+search-path = ["src"]
+
+project-includes = [
     "src",
     "tests",
 ]
 
-project_excludes = [
+project-excludes = [
     "**/__pycache__",
     ".venv",
     "build",
     "dist",
 ]
+
+# pydot is only used by chopsticks.solver.viz and ships in the optional `viz`
+# extra; treat it as Any when it is not installed so the type check still passes
+# in a core-only environment (it is fully checked when the extra is present).
+ignore-missing-imports = ["pydot"]

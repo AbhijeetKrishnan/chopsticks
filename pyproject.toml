@@ -51,6 +51,12 @@ files = ["src", "tests"]
 module = ["pettingzoo.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# pydot is only used by chopsticks.solver.viz and is in the optional `viz`
+# extra; tolerate its absence in a core-only environment
+module = ["pydot.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q"
