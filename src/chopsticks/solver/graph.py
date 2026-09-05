@@ -111,9 +111,12 @@ def build_reachable_graph(
 
     pbar = None
     if progress:
-        from tqdm import tqdm
-
-        pbar = tqdm(desc="Exploring states", unit="state")
+        try:
+            from tqdm import tqdm
+        except ImportError:
+            pass  # tqdm ships in the optional `viz` extra; skip the bar without it
+        else:
+            pbar = tqdm(desc="Exploring states", unit="state")
 
     while stack:
         state, pending = stack[-1]

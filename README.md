@@ -36,7 +36,7 @@ number of chopsticks in their hands (unordered) and it's the same player's turn 
 git clone git@github.com:AbhijeetKrishnan/chopsticks.git
 cd chopsticks
 uv sync                 # runtime + dev environment
-uv sync --extra viz     # also install the visualisation extra (pydot)
+uv sync --extra viz     # add the visualisation extra (pydot) for graph rendering
 ```
 
 ## Usage
@@ -64,7 +64,7 @@ uv sync --extra viz
 uv run chopsticks-solve --output-dir build/analysis
 ```
 
-Expected output:
+Expected output (a progress bar is also shown on stderr):
 
 ```
 Chopsticks — retrograde analysis
@@ -75,11 +75,16 @@ Chopsticks — retrograde analysis
   P1 wins / P2 wins:     156 / 156
   drawn states:          94
   unreachable canonical: 44
+wrote build/analysis/optimal_graph.dot
+wrote build/analysis/optimal_graph.png
+wrote build/analysis/p1_winning_p2_all.dot
+wrote build/analysis/p1_winning_p2_all.png
 ```
 
-and, in `build/analysis/`: `optimal_graph.{dot,png}` (optimal moves for both players) and
-`p1_winning_p2_all.{dot,png}` (Player 1's optimal moves against every Player 2 reply). Add
-`--graph full` for the brute-forced full-state graph (slow to render as PNG).
+`optimal_graph` is the optimal moves for both players; `p1_winning_p2_all` is Player 1's
+optimal moves against every Player 2 reply. `--graph full` adds the brute-forced full-state
+graph (~1250 nodes) — pair it with `--format dot`, as a PNG of that graph takes many minutes
+to lay out.
 
 Solve only, machine-readable, no Graphviz needed:
 
@@ -94,7 +99,7 @@ from chopsticks.env.state import ChopsticksState, Turn
 from chopsticks.solver import solve, graph_stats
 
 solution = solve()
-print(graph_stats(solution))    # {'reachable_states': 406, 'start_outcome': 'draw', ...}
+print(graph_stats(solution))    # {'reachable_states': 406, ..., 'start_outcome': 'draw'}
 print(solution.values[ChopsticksState(1, 1, 1, 1, Turn.P1)])   # 0  -> a draw
 ```
 

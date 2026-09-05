@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import sys
 from importlib.metadata import version
 from pathlib import Path
 from typing import TYPE_CHECKING, List
@@ -126,7 +127,15 @@ def main(argv: List[str] | None = None) -> int:
     if args.no_render:
         return 0
 
-    from chopsticks.solver import viz
+    try:
+        from chopsticks.solver import viz
+    except ImportError:
+        print(
+            "graph rendering needs the 'viz' extra: uv sync --extra viz "
+            "(or pip install 'chopsticks[viz]'); use --no-render to skip it.",
+            file=sys.stderr,
+        )
+        return 1
 
     def build(name: str) -> "pydot.Dot":
         if name == "optimal":
