@@ -1,44 +1,16 @@
-[tool.pyrefly]
-# Python version target
-python-version = "3.12"
+# Pyrefly type-checker configuration.
+# See https://pyrefly.org/en/docs/configuration/ for the full option list.
 
-# Code analysis settings
-check-private-attributes = true
-check-unused-imports = true
-check-unused-variables = true
-check-undefined-names = true
+python_version = "3.12"
 
-# Source directories to analyze
-include = [
-    "src/",
-    "policy/",
+project_includes = [
+    "src",
+    "tests",
 ]
 
-# Directories to exclude from analysis
-exclude = [
+project_excludes = [
+    "**/__pycache__",
+    ".venv",
     "build",
     "dist",
-    "venv",
-    ".venv",
-    "__pycache__",
-    ".pytest_cache",
-    ".mypy_cache",
-    ".ruff_cache",
-    "tests/",
 ]
-
-# Type checking settings
-enable-strict-mode = true
-check-return-types = true
-check-argument-types = true
-
-# Code style settings
-max-line-length = 100
-indent-size = 4
-
-# Complexity settings
-max-function-complexity = 15
-max-cognitive-complexity = 20
-
-# Security settings
-enable-security-checks = true

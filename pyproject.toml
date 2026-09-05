@@ -45,7 +45,7 @@ target-version = "py312"
 python_version = "3.12"
 mypy_path = "src"
 explicit_package_bases = true
-files = ["src", "policy"]
+files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
 # pettingzoo ships no type information and has no stub package on PyPI
