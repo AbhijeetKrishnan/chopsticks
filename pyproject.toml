@@ -34,10 +34,23 @@ dev = [
     "pyrefly",
     "ruff",
     "pytest",
+    "mypy",
+    "types-tqdm",
 ]
 
 [tool.ruff]
 target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+explicit_package_bases = true
+files = ["src", "policy"]
+
+[[tool.mypy.overrides]]
+# pettingzoo ships no type information and has no stub package on PyPI
+module = ["pettingzoo.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -53,4 +66,6 @@ dev = [
     "pyrefly>=0.47.0",
     "pytest>=9.0.2",
     "ruff>=0.14.11",
+    "mypy>=1.5.1",
+    "types-tqdm>=4.67.1",
 ]
