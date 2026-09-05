@@ -128,15 +128,22 @@ def optimal_graph_dot(
     return dot_graph
 
 
-def p1_winning_dot(
+def strategy_graph_dot(
     solution: Solution,
+    player: Turn,
     start: ChopsticksState = CANONICAL_START,
 ) -> pydot.Dot:
-    """Build the graph of Player 1's optimal actions against every Player 2 move."""
+    """Build the graph of ``player``'s optimal strategy against every opponent reply.
+
+    At a position where ``player`` is to move only value-preserving (optimal)
+    actions are followed; at the opponent's positions every legal move is
+    followed. The result therefore shows what ``player`` does in every position
+    that can arise, no matter how the opponent plays."""
 
     graph, values = solution
+    opponent = Turn.P2 if player == Turn.P1 else Turn.P1
     dot_graph = pydot.Dot(
-        "P1 Optimal Actions with All P2 Moves",
+        f"{player} Optimal Actions with All {opponent} Moves",
         graph_type="graph",
         bgcolor="lightgray",
         simplify=True,
@@ -147,8 +154,7 @@ def p1_winning_dot(
     add_node(dot_graph, values, root)
     while queue:
         state = queue.popleft()
-        add_node(dot_graph, values, state)
-        if state.turn == Turn.P1:
+        if state.turn == player:
             edges = optimal_children(graph, values, state)
         else:
             edges = graph[state]
@@ -156,8 +162,27 @@ def p1_winning_dot(
             if child not in seen:
                 seen.add(child)
                 queue.append(child)
+                add_node(dot_graph, values, child)
             add_edge(dot_graph, state, child, action, edge_type)
     return dot_graph
+
+
+def p1_winning_dot(
+    solution: Solution,
+    start: ChopsticksState = CANONICAL_START,
+) -> pydot.Dot:
+    """Player 1's optimal strategy against every Player 2 move."""
+
+    return strategy_graph_dot(solution, Turn.P1, start)
+
+
+def p2_winning_dot(
+    solution: Solution,
+    start: ChopsticksState = CANONICAL_START,
+) -> pydot.Dot:
+    """Player 2's optimal strategy against every Player 1 move."""
+
+    return strategy_graph_dot(solution, Turn.P2, start)
 
 
 def full_state_graph_dot() -> pydot.Dot:

@@ -79,12 +79,55 @@ wrote build/analysis/optimal_graph.dot
 wrote build/analysis/optimal_graph.png
 wrote build/analysis/p1_winning_p2_all.dot
 wrote build/analysis/p1_winning_p2_all.png
+wrote build/analysis/p2_winning_p1_all.dot
+wrote build/analysis/p2_winning_p1_all.png
 ```
 
-`optimal_graph` is the optimal moves for both players; `p1_winning_p2_all` is Player 1's
-optimal moves against every Player 2 reply. `--graph full` adds the brute-forced full-state
-graph (~1250 nodes) — pair it with `--format dot`, as a PNG of that graph takes many minutes
-to lay out.
+`optimal_graph` is the optimal moves for both players. `p1_winning_p2_all` is Player 1's
+optimal strategy: at every Player 1 turn only value-preserving moves are drawn, while every
+Player 2 reply is followed, so the graph shows what Player 1 does no matter how Player 2
+plays. `p2_winning_p1_all` is the mirror image for Player 2. `--graph full` adds the
+brute-forced full-state graph (~1250 nodes) — pair it with `--format dot`, as a PNG of that
+graph takes many minutes to lay out.
+
+### Per-player strategy graphs
+
+The two strategy graphs are rendered by default. To build only one of them, or to pick a
+format, select it with `--graph` (repeatable):
+
+```bash
+# Player 1's strategy against every Player 2 reply, .dot and .png
+uv run chopsticks-solve --graph p1-winning --output-dir build/analysis
+
+# Player 2's strategy against every Player 1 move, .dot only
+uv run chopsticks-solve --graph p2-winning --format dot --output-dir build/analysis
+
+# both strategy graphs from a non-standard opening
+uv run chopsticks-solve --graph p1-winning --graph p2-winning \
+    --start "1,2,1,3,P1" --output-dir build/analysis
+```
+
+Reading the graphs: nodes are coloured by game-theoretic value (grey draw, green Player 1
+win, red Player 2 win) and shaped by the player to move (`house` Player 1, `invhouse`
+Player 2, `box` terminal). Solid edges are tree edges of the traversal; dashed edges rejoin
+a position already discovered elsewhere (a transposition or a repetition-rule cycle). In
+`p2_winning_p1_all` the root is Player 1 to move, so it fans out over *every* Player 1
+opening — including the losing self-move, after which the red subtree is Player 2's forced
+win.
+
+Rendering the strategy graphs from Python:
+
+```python
+from chopsticks.env.state import Turn
+from chopsticks.solver import solve
+from chopsticks.solver.viz import strategy_graph_dot, render
+from pathlib import Path
+
+solution = solve()
+for player in (Turn.P1, Turn.P2):
+    graph = strategy_graph_dot(solution, player)
+    render(graph, Path(f"{player.name.lower()}_strategy.png"), "png")
+```
 
 Solve only, machine-readable, no Graphviz needed:
 

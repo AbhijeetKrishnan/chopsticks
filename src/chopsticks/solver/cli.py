@@ -19,12 +19,13 @@ _TURNS = {"P1": Turn.P1, "P2": Turn.P2}
 _GRAPHS = {
     "optimal": "optimal_graph",
     "p1-winning": "p1_winning_p2_all",
+    "p2-winning": "p2_winning_p1_all",
     "full": "full_graph",
 }
 
 # `full` is the brute-forced 1250-node graph; PNG rendering it takes minutes, so
 # it is opt-in rather than part of the default set.
-_DEFAULT_GRAPHS = ("optimal", "p1-winning")
+_DEFAULT_GRAPHS = ("optimal", "p1-winning", "p2-winning")
 
 
 def parse_state(text: str) -> ChopsticksState:
@@ -72,8 +73,8 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         choices=sorted(_GRAPHS),
         dest="graphs",
-        help="graph to render; repeatable (default: optimal + p1-winning; "
-        "'full' is the slow brute-forced graph)",
+        help="graph to render; repeatable (default: optimal + p1-winning + "
+        "p2-winning; 'full' is the slow brute-forced graph)",
     )
     parser.add_argument(
         "--format",
@@ -142,6 +143,8 @@ def main(argv: List[str] | None = None) -> int:
             return viz.optimal_graph_dot(solution, args.start)
         if name == "p1-winning":
             return viz.p1_winning_dot(solution, args.start)
+        if name == "p2-winning":
+            return viz.p2_winning_dot(solution, args.start)
         return viz.full_state_graph_dot()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
