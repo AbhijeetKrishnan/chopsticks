@@ -21,6 +21,13 @@ It is possible to enter loops while playing caused due to a repetition of positi
 declares a game a draw if any position is repeated more than once. A position is repeated if the players have the same
 number of chopsticks in their hands (unordered) and it's the same player's turn as a previous position.
 
+## Requirements
+
+- Python 3.12+
+- [Graphviz](https://graphviz.org/) (the `dot` binary) — only needed for PNG output from the
+  solver: `sudo apt install graphviz` or `brew install graphviz`. Without it the solver still
+  writes `.dot` files.
+
 ## Installation
 
 ### Local
@@ -28,7 +35,8 @@ number of chopsticks in their hands (unordered) and it's the same player's turn 
 ```bash
 git clone git@github.com:AbhijeetKrishnan/chopsticks.git
 cd chopsticks
-uv build
+uv sync                 # runtime + dev environment
+uv sync --extra viz     # also install the visualisation extra (pydot)
 ```
 
 ## Usage
@@ -42,7 +50,53 @@ from chopsticks import chopsticks_v0
 env = chopsticks_v0.env()
 ```
 
-See [`demo.py](./demo.py) for a script that implements a simple random policy to interact with the environment.
+See [`demo.py`](./demo.py) for a script that implements a simple random policy to interact with
+the environment.
+
+## Solving the game / reproducing the analysis
+
+The package ships an exact solver that enumerates every reachable position and labels it by
+retrograde analysis (backward induction). Chopsticks, as defined by the rules above, is a
+**draw** with optimal play.
+
+```bash
+uv sync --extra viz
+uv run chopsticks-solve --output-dir build/analysis
+```
+
+Expected output:
+
+```
+Chopsticks — retrograde analysis
+  start position:        draw (value 0)
+  reachable states:      406
+  terminal states:       28
+  edges:                 1628
+  P1 wins / P2 wins:     156 / 156
+  drawn states:          94
+  unreachable canonical: 44
+```
+
+and, in `build/analysis/`: `optimal_graph.{dot,png}` (optimal moves for both players) and
+`p1_winning_p2_all.{dot,png}` (Player 1's optimal moves against every Player 2 reply). Add
+`--graph full` for the brute-forced full-state graph (slow to render as PNG).
+
+Solve only, machine-readable, no Graphviz needed:
+
+```bash
+uv run chopsticks-solve --no-render --json
+```
+
+From Python:
+
+```python
+from chopsticks.env.state import ChopsticksState, Turn
+from chopsticks.solver import solve, graph_stats
+
+solution = solve()
+print(graph_stats(solution))    # {'reachable_states': 406, 'start_outcome': 'draw', ...}
+print(solution.values[ChopsticksState(1, 1, 1, 1, Turn.P1)])   # 0  -> a draw
+```
 
 ## Testing
 
@@ -51,6 +105,6 @@ Tests are run using [pytest](http://doc.pytest.org/).
 ```bash
 git clone git@github.com:AbhijeetKrishnan/chopsticks.git
 cd chopsticks
-uv build
-pytest
+uv sync
+uv run pytest
 ```
