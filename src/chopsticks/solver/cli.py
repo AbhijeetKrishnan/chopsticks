@@ -78,9 +78,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--format",
-        choices=("dot", "png", "both"),
+        choices=("dot", "png", "svg", "both", "all"),
         default="both",
-        help="output format(s) for rendered graphs (default: both)",
+        help="output format(s) for rendered graphs: a single format, "
+        "'both' (dot + png, the default), or 'all' (dot + png + svg)",
     )
     parser.add_argument(
         "--no-render",
@@ -109,7 +110,11 @@ def build_parser() -> argparse.ArgumentParser:
 def _formats(choice: str) -> List[str]:
     """Expand the ``--format`` choice into concrete formats."""
 
-    return ["dot", "png"] if choice == "both" else [choice]
+    if choice == "both":
+        return ["dot", "png"]
+    if choice == "all":
+        return ["dot", "png", "svg"]
+    return [choice]
 
 
 def main(argv: List[str] | None = None) -> int:

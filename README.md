@@ -24,9 +24,9 @@ number of chopsticks in their hands (unordered) and it's the same player's turn 
 ## Requirements
 
 - Python 3.12+
-- [Graphviz](https://graphviz.org/) (the `dot` binary) — only needed for PNG output from the
-  solver: `sudo apt install graphviz` or `brew install graphviz`. Without it the solver still
-  writes `.dot` files.
+- [Graphviz](https://graphviz.org/) (the `dot` binary) — only needed for PNG/SVG output from
+  the solver: `sudo apt install graphviz` or `brew install graphviz`. Without it the solver
+  still writes `.dot` files.
 
 ## Installation
 
@@ -107,13 +107,28 @@ uv run chopsticks-solve --graph p1-winning --graph p2-winning \
     --start "1,2,1,3,P1" --output-dir build/analysis
 ```
 
-Reading the graphs: nodes are coloured by game-theoretic value (grey draw, green Player 1
-win, red Player 2 win) and shaped by the player to move (`house` Player 1, `invhouse`
-Player 2, `box` terminal). Solid edges are tree edges of the traversal; dashed edges rejoin
-a position already discovered elsewhere (a transposition or a repetition-rule cycle). In
-`p2_winning_p1_all` the root is Player 1 to move, so it fans out over *every* Player 1
-opening — including the losing self-move, after which the red subtree is Player 2's forced
-win.
+The strategy graphs have ~140 nodes, so a PNG of one is large. Render SVG instead and open
+it in a browser to zoom (`--format all` writes `.dot` + `.png` + `.svg`):
+
+```bash
+uv run chopsticks-solve --graph p1-winning --format svg --output-dir build/analysis
+uv run chopsticks-solve --format all --output-dir build/analysis
+```
+
+Reading the graphs: each node is one position, shown as two lines — `P1 m M` above
+`P2 m M` (finger counts; `x` = a dead hand). The node shape marks whose turn it is:
+`house` = Player 1 to move, `invhouse` = Player 2, `doubleoctagon` = terminal (labelled
+with the winner). Fill colour is the game-theoretic value: pale blue-grey = draw, green =
+Player 1 win, red = Player 2 win. The bold gold-bordered node is the start. Edges point in
+the order of play: a thick blue edge is an optimal Player 1 move, a thick orange edge an
+optimal Player 2 move, a thin grey edge is a Player 2 (resp. Player 1) reply drawn only
+for completeness in the strategy graphs, and a dashed red edge returns to a position seen
+earlier — those cycles are what the repetition rule turns into the draw. Moves that reach
+the same position from one node share a single edge whose label joins their codes with `/`
+(`m`/`M` = the mover's smaller/larger hand, `2s` = to the mover's own other hand). Every
+graph carries a legend box repeating this. In `p2_winning_p1_all` the root is Player 1 to
+move, so it fans out over *every* Player 1 opening — including the losing self-move, after
+which the red subtree is Player 2's forced win.
 
 Rendering the strategy graphs from Python:
 
@@ -125,8 +140,9 @@ from pathlib import Path
 
 solution = solve()
 for player in (Turn.P1, Turn.P2):
+    # pass legend=False to strategy_graph_dot(...) to omit the legend box
     graph = strategy_graph_dot(solution, player)
-    render(graph, Path(f"{player.name.lower()}_strategy.png"), "png")
+    render(graph, Path(f"{player.name.lower()}_strategy.svg"), "svg")
 ```
 
 Solve only, machine-readable, no Graphviz needed:
