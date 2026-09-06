@@ -1,11 +1,4 @@
-"""Reachable-state graph construction for the Chopsticks solver.
-
-Positions are identified only by their hands and whose turn it is; the repetition
-bookkeeping carried by :class:`~chopsticks.env.state.ChopsticksState` (its
-``is_repeated`` flag and ``history``) is intentionally dropped here, because the
-retrograde valuation in :mod:`chopsticks.solver.retrograde` already accounts for
-repetition by treating unresolved cycles as draws.
-"""
+"""Reachable-state graph construction for the Chopsticks solver."""
 
 from collections import defaultdict
 from enum import Enum, auto
@@ -81,7 +74,7 @@ def build_reachable_graph(
     *,
     progress: bool = False,
 ) -> Graph:
-    """Depth-first search from ``start``, recording every edge and its CLRS type.
+    """Depth-first search from ``start``, recording every edge and its type.
 
     Tree edges lead to undiscovered positions, forward/cross edges to positions
     already finished, and back edges close a cycle (a repeated position). Set

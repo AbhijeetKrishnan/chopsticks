@@ -10,9 +10,9 @@ This is an implementation of the game of Chopsticks as a [PettingZoo](https://gi
 
 ## Rules
 
-Chopsticks is a simple, 2-player, perfect information, zero-sum game that only requires both your hands to play.  Each
+Chopsticks is a simple, 2-player, perfect information, zero-sum game that only requires both your hands to play. Each
 player has a number of "chopsticks" in each hand, denoted by the number of fingers held out. Since players will tend to
-have only 5 fingers, the number of held chopsticks can only be between $[1, 4]$. Players take turns transferring
+have only 5 fingers, the number of held chopsticks is between $[1, 4]$. Players take turns transferring
 chopsticks to another hand. Transferring a chopstick involves touching the other player's (or your own) hand with
 another, thereby adding the chopsticks in your hand to the other, modulo 5. If the total reaches 0, that hand is
 considered "dead", and is out of play. If a player loses both their hands, then they lose.
@@ -83,12 +83,9 @@ wrote build/analysis/p2_winning_p1_all.dot
 wrote build/analysis/p2_winning_p1_all.png
 ```
 
-`optimal_graph` is the optimal moves for both players. `p1_winning_p2_all` is Player 1's
-optimal strategy: at every Player 1 turn only value-preserving moves are drawn, while every
-Player 2 reply is followed, so the graph shows what Player 1 does no matter how Player 2
-plays. `p2_winning_p1_all` is the mirror image for Player 2. `--graph full` adds the
-brute-forced full-state graph (~1250 nodes) — pair it with `--format dot`, as a PNG of that
-graph takes many minutes to lay out.
+* `optimal_graph`: optimal moves for both players
+* `p1_winning_p2_all`: Player 1's optimal strategy for every Player 2 move
+* `p2_winning_p1_all`: Player 2's optimal strategy for every Player 1 move
 
 ### Per-player strategy graphs
 
@@ -114,21 +111,6 @@ it in a browser to zoom (`--format all` writes `.dot` + `.png` + `.svg`):
 uv run chopsticks-solve --graph p1-winning --format svg --output-dir build/analysis
 uv run chopsticks-solve --format all --output-dir build/analysis
 ```
-
-Reading the graphs: each node is one position, shown as two lines — `P1 m M` above
-`P2 m M` (finger counts; `x` = a dead hand). The node shape marks whose turn it is:
-`house` = Player 1 to move, `invhouse` = Player 2, `doubleoctagon` = terminal (labelled
-with the winner). Fill colour is the game-theoretic value: pale blue-grey = draw, green =
-Player 1 win, red = Player 2 win. The bold gold-bordered node is the start. Edges point in
-the order of play: a thick blue edge is an optimal Player 1 move, a thick orange edge an
-optimal Player 2 move, a thin grey edge is a Player 2 (resp. Player 1) reply drawn only
-for completeness in the strategy graphs, and a dashed red edge returns to a position seen
-earlier — those cycles are what the repetition rule turns into the draw. Moves that reach
-the same position from one node share a single edge whose label joins their codes with `/`
-(`m`/`M` = the mover's smaller/larger hand, `2s` = to the mover's own other hand). Every
-graph carries a legend box repeating this. In `p2_winning_p1_all` the root is Player 1 to
-move, so it fans out over *every* Player 1 opening — including the losing self-move, after
-which the red subtree is Player 2's forced win.
 
 Rendering the strategy graphs from Python:
 

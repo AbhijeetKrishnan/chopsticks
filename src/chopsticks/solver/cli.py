@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 _TURNS = {"P1": Turn.P1, "P2": Turn.P2}
 
-# graph name -> output file stem
+# graph name -> output file name
 _GRAPHS = {
     "optimal": "optimal_graph",
     "p1-winning": "p1_winning_p2_all",
@@ -23,8 +23,6 @@ _GRAPHS = {
     "full": "full_graph",
 }
 
-# `full` is the brute-forced 1250-node graph; PNG rendering it takes minutes, so
-# it is opt-in rather than part of the default set.
 _DEFAULT_GRAPHS = ("optimal", "p1-winning", "p2-winning")
 
 
