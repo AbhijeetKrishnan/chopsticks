@@ -64,6 +64,15 @@ testpaths = [
     "tests"
 ]
 console_output_style = "progress"
+filterwarnings = [
+    # PettingZoo's api_test emits these two UserWarnings for any env whose
+    # observation is a Dict({"observation", "action_mask"}) - the standard
+    # action-masking pattern also used by chess_v6, connect_four_v3, etc. The
+    # test only silences them for its own bundled envs (hard-coded name lists),
+    # so a third-party env has no way to opt out except here.
+    "ignore:Observation space for each agent probably should be:UserWarning",
+    "ignore:Observation is not a NumPy array:UserWarning",
+]
 
 [dependency-groups]
 dev = [
